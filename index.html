@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Workstation Prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="workstation-shell">
+      <aside class="rail" aria-label="Workspace navigation">
+        <div class="brand">
+          <div class="brand-mark">W</div>
+          <div>
+            <p class="eyebrow">Prototype</p>
+            <h1>Workstation</h1>
+          </div>
+        </div>
+
+        <nav id="workspaceNav" class="workspace-nav"></nav>
+
+        <section class="side-section">
+          <div class="section-heading">
+            <span>处理队列</span>
+            <span id="queueBadge" class="count-badge"></span>
+          </div>
+          <div id="queueList" class="queue-list"></div>
+        </section>
+
+        <section class="side-section">
+          <div class="section-heading">
+            <span>文件夹</span>
+            <button id="newFolderButton" class="micro-button" type="button">新增</button>
+          </div>
+          <div id="folderTree" class="folder-tree"></div>
+        </section>
+
+        <div class="rail-footer">
+          <button id="resetDemoButton" class="ghost-button" type="button">重置示例</button>
+        </div>
+      </aside>
+
+      <section class="main-stage">
+        <header class="command-bar">
+          <div>
+            <p id="viewEyebrow" class="eyebrow">Home</p>
+            <h2 id="viewTitle">今日工作台</h2>
+          </div>
+          <label class="global-search">
+            <span>搜索</span>
+            <input id="searchInput" type="search" placeholder="搜索笔记、公司、文件、标签..." autocomplete="off" />
+          </label>
+          <button id="newNoteButton" class="primary-button" type="button">新笔记</button>
+          <button id="mockUploadButton" class="secondary-button" type="button">模拟上传</button>
+        </header>
+
+        <div class="content-grid">
+          <section class="content-pane" aria-label="Workspace content">
+            <div id="dashboardView" class="dashboard-view"></div>
+            <div id="timelineView" class="timeline-view" hidden></div>
+          </section>
+
+          <section class="editor-pane" aria-label="Selected note">
+            <div id="emptyState" class="empty-state">
+              <h3>选择一个材料开始处理</h3>
+              <p>这里会显示原文、View、AI 动作和上下文。所有内容都是 demo 数据，保存在浏览器本地。</p>
+            </div>
+
+            <article id="editorPanel" class="editor-panel" hidden>
+              <div class="editor-top">
+                <div>
+                  <input id="titleInput" class="title-input" type="text" placeholder="标题" />
+                  <div id="selectedMeta" class="selected-meta"></div>
+                </div>
+                <div class="editor-actions">
+                  <button id="pinButton" class="tool-button" type="button">置顶</button>
+                  <button id="deleteNoteButton" class="danger-button" type="button">删除</button>
+                </div>
+              </div>
+
+              <div class="metadata-row">
+                <label>
+                  <span>文件夹</span>
+                  <select id="folderSelect"></select>
+                </label>
+                <label>
+                  <span>类型</span>
+                  <select id="typeSelect">
+                    <option value="note">笔记</option>
+                    <option value="transcript">转录</option>
+                    <option value="report">研报</option>
+                    <option value="model">模型</option>
+                    <option value="meeting">会议</option>
+                  </select>
+                </label>
+                <label>
+                  <span>标签</span>
+                  <input id="tagsInput" type="text" placeholder="AI, 公司, 会议" />
+                </label>
+              </div>
+
+              <div class="ai-strip">
+                <button data-ai-action="summary" class="ai-button" type="button">摘要</button>
+                <button data-ai-action="actions" class="ai-button" type="button">行动项</button>
+                <button data-ai-action="questions" class="ai-button" type="button">问题清单</button>
+                <button data-ai-action="company" class="ai-button" type="button">公司视图</button>
+                <button data-ai-action="weekly" class="ai-button" type="button">周报素材</button>
+              </div>
+
+              <div class="editor-tabs">
+                <button id="sourceTabButton" class="tab-button active" type="button">Source</button>
+                <button id="viewTabButton" class="tab-button" type="button">View</button>
+              </div>
+
+              <textarea id="sourceInput" class="editor-textarea" placeholder="原始材料、转录、会议记录..."></textarea>
+              <textarea id="viewInput" class="editor-textarea" placeholder="AI 输出、整理后的观点、可编辑 View..." hidden></textarea>
+            </article>
+          </section>
+
+          <aside class="context-pane" aria-label="Context">
+            <section class="context-section">
+              <div class="section-heading">
+                <span>Context</span>
+                <span id="contextStatus" class="status-dot"></span>
+              </div>
+              <div id="contextSummary" class="context-summary"></div>
+            </section>
+
+            <section class="context-section">
+              <div class="section-heading">
+                <span>相关材料</span>
+              </div>
+              <div id="relatedList" class="related-list"></div>
+            </section>
+
+            <section class="context-section">
+              <div class="section-heading">
+                <span>Agent Monitor</span>
+              </div>
+              <div id="agentList" class="agent-list"></div>
+            </section>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
