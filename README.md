@@ -34,9 +34,10 @@ http://localhost:5173
 
 ```text
 CODEX_HANDOFF.md
+WORKSTATION_BUILD_PLAYBOOK.md
 ```
 
-里面有可以直接复制给 Codex 的分阶段 prompt，适合编程经验不多、但已经装好 Codex / GitHub / Cloudflare / Supabase 的使用者。
+里面有可以直接复制给 Codex 的分阶段 prompt，适合编程经验不多、但已经装好 Codex / GitHub / Cloudflare / Supabase 的使用者。`WORKSTATION_BUILD_PLAYBOOK.md` 更偏产品逻辑和开发路线，能避免只复制一个 UI 壳。
 
 ## 建议的后续开发路线
 
