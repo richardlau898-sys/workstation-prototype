@@ -412,3 +412,994 @@ Day 7:
 ## 最重要的一句话
 
 不要先做一个像 Workstation 的壳。先做一个真的能把材料变成可复用 View 的小闭环。
+
+## Self-Service Manual
+
+这一部分是为了让你尽量少问 Richard。遇到问题时，先把对应段落复制给 Codex，让 Codex 自己检查、自己修、自己验证。
+
+### 你和 Codex 的分工
+
+你负责：
+
+- 描述你想要的工作流。
+- 决定哪些功能对你真的有用。
+- 确认是否部署、是否改数据库、是否接真实 AI。
+- 提供自己的 API key 和项目配置，但不要直接贴在公开聊天或代码里。
+
+Codex 负责：
+
+- 读当前 repo。
+- 解释现有代码。
+- 拆小任务。
+- 改代码。
+- 本地运行。
+- 验证结果。
+- 写清楚改了什么。
+- 遇到错误时先定位原因，而不是乱试。
+
+Richard 只应该在这些情况出现时被问：
+
+- 你不理解 Workstation 的产品方向。
+- 你已经让 Codex 查过代码、跑过验证、读过错误，但还是无法判断下一步。
+- 你准备借鉴 Richard 的公开产品形态，但不确定是否会涉及隐私或边界。
+- 你想讨论产品策略，而不是普通代码 bug。
+
+不要因为下面这些问题去问 Richard：
+
+- npm install 报错。
+- 页面样式不好看。
+- Supabase 表名不知道怎么起。
+- Codex 改太多了。
+- 本地端口冲突。
+- AI key 应该放哪里。
+- Git 不知道怎么 commit。
+
+这些都应该先让 Codex 按本文档处理。
+
+### 第一次打开 repo 时
+
+复制给 Codex：
+
+```text
+请先完整阅读这个 repo，特别是 README.md、WORKSTATION_BUILD_PLAYBOOK.md 和现有代码。
+
+不要马上写代码。请先回答：
+1. 这个 repo 当前能做什么？
+2. 当前数据存在什么地方？
+3. Source 和 View 分别是什么？
+4. 当前哪些功能只是 mock？
+5. 如果我要继续 build，最小的下一步是什么？
+6. 运行和验证这个 repo 的命令是什么？
+
+回答完以后，等我确认，再开始改代码。
+```
+
+如果 Codex 开始直接重构，发：
+
+```text
+停。请不要重构整个项目。请先只解释当前代码结构和一个最小下一步。
+```
+
+### 每次新功能开始前
+
+复制给 Codex：
+
+```text
+请把这个功能拆成最小可交付版本。
+
+你需要先告诉我：
+1. 这个功能服务于哪个工作流？
+2. 需要改哪些文件？
+3. 会新增什么数据字段？
+4. 有没有安全风险？
+5. 怎么本地验证？
+
+先不要写代码，等我确认。
+```
+
+确认后再发：
+
+```text
+可以开始。请只实现刚才确认的最小版本。
+不要顺手做无关重构。
+做完后请运行验证，并给我一个简短 changelog。
+```
+
+### 每次 Codex 改完后
+
+复制给 Codex：
+
+```text
+请做收尾检查：
+1. 当前 git diff 是什么？
+2. 是否有无关改动？
+3. 本地运行是否成功？
+4. 我应该点击哪里验证？
+5. 有哪些已知限制？
+6. 下一步最小功能是什么？
+```
+
+如果 Codex 没有运行验证，发：
+
+```text
+请不要只告诉我理论上可以。请实际运行本地验证，或者说明为什么不能运行。
+```
+
+## 详细模块说明
+
+### Module 1: Notes Core
+
+目标：先让系统能保存材料。
+
+数据字段：
+
+```text
+note.id
+note.title
+note.source
+note.view
+note.folderId
+note.tags
+note.type
+note.status
+note.pinned
+note.createdAt
+note.updatedAt
+```
+
+最小功能：
+
+- 新建 note。
+- 编辑 title。
+- 编辑 source。
+- 编辑 view。
+- 删除 note。
+- 刷新页面后还在。
+
+不要做：
+
+- 不要先做富文本编辑器。
+- 不要先做复杂权限。
+- 不要先做多用户。
+- 不要先接真实 AI。
+
+给 Codex 的 prompt：
+
+```text
+请实现 Notes Core 的最小版本。
+
+要求：
+- 使用 localStorage 保存 notes
+- 每条 note 有 id、title、source、view、folderId、tags、type、status、pinned、createdAt、updatedAt
+- 支持新建、编辑、删除
+- 删除前确认
+- 刷新后数据不丢
+
+请不要接后端，不要接真实 AI，不要做登录。
+做完后请告诉我如何验证。
+```
+
+验收标准：
+
+- 新建一条 note，刷新页面后还存在。
+- 修改 title，刷新后 title 仍然正确。
+- 修改 source，刷新后 source 仍然正确。
+- 修改 view，刷新后 view 仍然正确。
+- 删除时有确认。
+- 取消删除不会误删。
+
+### Module 2: Source / View
+
+目标：把原始资料和整理后的资料分开。
+
+Source 是：
+
+- 原始笔记。
+- 转录文本。
+- 会议记录。
+- PDF 摘录。
+- 网页摘录。
+- 模型假设原文。
+
+View 是：
+
+- 用户整理后的版本。
+- AI 摘要。
+- 行动项。
+- 公司问题清单。
+- 周报素材。
+- 可以继续编辑的输出。
+
+重要规则：
+
+- Source 不应该被 AI 随便覆盖。
+- View 可以被 AI 追加内容。
+- View 永远可编辑。
+- AI 输出要写入 View，不要只显示在弹窗里。
+
+给 Codex 的 prompt：
+
+```text
+请把 note 编辑器改成 Source / View 双区域。
+
+要求：
+- Source 用来保存原始材料
+- View 用来保存整理后的内容
+- 可以通过 tab 或分栏切换
+- AI 输出只能追加到 View
+- 不要覆盖用户已有 View，除非用户明确确认
+
+做完后请验证：
+1. Source 能编辑并保存
+2. View 能编辑并保存
+3. 点击 mock AI 后，内容追加到 View
+4. Source 不被改动
+```
+
+验收标准：
+
+- Source 和 View 都能独立保存。
+- AI 输出不污染 Source。
+- View 里已经有内容时，新 AI 输出追加在后面。
+- 用户可以继续修改 AI 输出。
+
+### Module 3: Folder / Tag / Search
+
+目标：让材料能找回来。
+
+文件夹适合放：
+
+- Inbox
+- Company
+- Research
+- Meetings
+- Models
+- Archive
+
+标签适合表达：
+
+- AI
+- 公司
+- 会议
+- 问题清单
+- 周报
+- 模型
+- 待处理
+
+搜索范围：
+
+- title
+- source
+- view
+- tags
+- folder name
+- entity name
+
+给 Codex 的 prompt：
+
+```text
+请实现文件夹、标签和搜索。
+
+要求：
+- 左侧有文件夹列表
+- 点击文件夹可以过滤 notes
+- 每条 note 可以编辑 tags
+- 搜索能查 title、source、view、tags
+- 搜索结果要即时更新
+- 不要引入后端
+
+做完后请创建几条 demo notes 用来测试搜索。
+```
+
+验收标准：
+
+- 点击 Inbox 只显示 Inbox 的 note。
+- 点击 Company 只显示 Company 的 note。
+- 搜索一个 Source 里的词能找到 note。
+- 搜索一个 View 里的词能找到 note。
+- 搜索一个 tag 能找到 note。
+- 清空搜索后恢复列表。
+
+### Module 4: Home Dashboard
+
+目标：打开 app 后知道今天该看什么。
+
+Home 不应该只是欢迎页。它应该显示：
+
+- 总材料数。
+- 今日新增。
+- 处理中。
+- 最近更新。
+- 上传队列。
+- 快速入口。
+
+给 Codex 的 prompt：
+
+```text
+请实现 Home Dashboard。
+
+要求：
+- 显示材料总数
+- 显示最近更新 notes
+- 显示 mock 上传队列
+- 显示常用工作区入口
+- 点击最近 note 能打开编辑器
+- 不要做营销 landing page
+
+页面要像工具，不要像宣传页。
+```
+
+验收标准：
+
+- Home 首屏能看到最近材料。
+- 点击最近材料能进入对应 note。
+- 上传队列能显示 processing / completed / draft 状态。
+- 页面信息密度足够，不要只有大标题。
+
+### Module 5: Mock Upload
+
+目标：先模拟资料进入系统，不急着真的上传文件。
+
+Mock upload 应该做：
+
+- 创建一条新 note。
+- type 设置为 transcript / report / model。
+- status 设置为 processing。
+- Source 写入一段模拟原始内容。
+- View 写入“等待处理”。
+
+给 Codex 的 prompt：
+
+```text
+请实现一个 mock 上传按钮。
+
+点击后：
+- 新建一条 note
+- type = transcript
+- status = processing
+- source 里写入模拟转录内容
+- view 里写入等待处理提示
+- 自动选中新 note
+
+不要接真实文件上传，不要接 Supabase Storage。
+```
+
+验收标准：
+
+- 点击 mock upload 后列表多一条 note。
+- 新 note 自动打开。
+- Source 有模拟内容。
+- View 显示等待处理。
+- 刷新后 note 还在。
+
+### Module 6: AI Actions
+
+目标：AI 变成工作流按钮，而不是只有聊天框。
+
+优先按钮：
+
+- 摘要
+- 行动项
+- 问题清单
+- 公司视图
+- Daily Brief
+- 周报素材
+
+第一版只做 mock，不接真实模型。
+
+给 Codex 的 prompt：
+
+```text
+请实现 mock AI actions。
+
+按钮：
+- 摘要
+- 行动项
+- 问题清单
+- 公司视图
+- 周报素材
+
+规则：
+- 根据当前 note.source 和 note.title 生成简单 mock 输出
+- 输出追加到 note.view
+- 输出前加时间和 action 名称
+- 不要覆盖已有 View
+- 不要接真实 AI API
+```
+
+验收标准：
+
+- 点击“摘要”后 View 增加摘要段落。
+- 点击“问题清单”后 View 增加问题清单。
+- 连续点击两个 action，两个输出都保留。
+- Source 不变化。
+- 刷新后 View 仍然包含输出。
+
+接真实 AI 时再用这个 prompt：
+
+```text
+请把 mock AI actions 抽象成 provider 架构。
+
+要求：
+- 前端调用统一函数 runAiAction(action, note)
+- 先保留 mock provider
+- 后续可以替换成后端 /api/ai-action
+- 不要把 API key 放到前端
+- 不要在这一步接真实模型
+```
+
+### Module 7: Company Workspace
+
+目标：围绕一个公司或项目聚合材料。
+
+第一版可以很简单：
+
+- note 有 entity 字段。
+- entity 可以是公司名、项目名或主题。
+- Company 页面显示 entity = 当前公司的 notes。
+- AI 问题清单从这些 notes 里生成。
+
+不要一开始做：
+
+- 不要先做股票行情。
+- 不要先做复杂图表。
+- 不要先做自动公司识别。
+- 不要先接真实财报 API。
+
+给 Codex 的 prompt：
+
+```text
+请实现最小 Company Workspace。
+
+要求：
+- note 增加 entity 字段
+- Company 页面按 entity 聚合 notes
+- 点击一个 company 能看到相关 notes
+- 有一个“生成问题清单”mock AI action
+- 问题清单要写入当前 company note 的 View
+
+先用 demo entity，例如 SampleCo。
+```
+
+验收标准：
+
+- 多条 notes 可以属于同一个 entity。
+- Company 页面能看到这些 notes。
+- 生成问题清单会参考相关 notes 的 title/source/view。
+- 输出写入 View。
+
+### Module 8: Daily Brief
+
+目标：从最近材料生成每日回顾。
+
+Daily Brief 第一版：
+
+- 读取最近更新的 notes。
+- 按 tags / folder / type 分组。
+- 生成一个 mock summary。
+- 显示“今天新增”“今天处理”“待跟进”。
+
+给 Codex 的 prompt：
+
+```text
+请实现 Daily Brief 的本地 mock 版本。
+
+要求：
+- 读取最近更新的 notes
+- 生成一个本地 summary，不接真实 AI
+- 显示今日新增、最近处理、待跟进
+- 点击 brief 里的材料能跳到对应 note
+- 不要接后端定时任务
+```
+
+验收标准：
+
+- 修改一条 note 后，它出现在 Daily Brief。
+- Daily Brief 显示最近材料列表。
+- 点击材料能打开 note。
+- summary 不需要很聪明，但结构要清楚。
+
+### Module 9: Agent Monitor
+
+目标：先展示“未来可以自动处理”的概念。
+
+第一版只做 mock 状态：
+
+- Note Processor
+- Company Prep
+- Weekly Digest
+- Upload Queue
+
+状态：
+
+- ready
+- working
+- paused
+- error
+
+给 Codex 的 prompt：
+
+```text
+请实现 Agent Monitor 的 mock 页面。
+
+要求：
+- 展示几个 agent 卡片
+- 每个 agent 有 name、status、description、lastRun
+- 不执行真实后台任务
+- 不接真实 agent framework
+- 点击 agent 可以看到它未来负责什么
+```
+
+验收标准：
+
+- Agents 页面能看到状态。
+- 状态颜色清楚。
+- 不会真的调用外部服务。
+
+### Module 10: Supabase Migration
+
+目标：把本地数据变成多设备持久化。
+
+只有当本地闭环已经顺了，才开始 Supabase。
+
+先让 Codex做方案，不要直接 migration。
+
+给 Codex 的 prompt：
+
+```text
+我准备接 Supabase。请先做方案，不要改代码，不要创建 migration。
+
+请输出：
+1. 表结构
+2. 字段解释
+3. RLS 策略
+4. 前端怎么读写
+5. localStorage 如何迁移
+6. 哪些 key 可以在前端
+7. 哪些 key 必须只在服务端
+8. 需要查哪些 Supabase 官方文档
+```
+
+方案确认后，再让 Codex做第一张表：
+
+```text
+请只实现 notes 表相关功能。
+
+要求：
+- 先查 Supabase 官方文档
+- 创建 migration 前先给我 SQL
+- RLS 必须开启
+- 用户只能读写自己的 notes
+- service_role key 不能进入前端
+- 做完后用本地或测试项目验证
+```
+
+验收标准：
+
+- 登录用户只能看到自己的 notes。
+- 前端没有 service_role key。
+- 刷新后数据来自 Supabase。
+- localStorage fallback 仍然可用，或者有清楚迁移按钮。
+
+### Module 11: Cloudflare Deployment
+
+目标：让别人能打开你的版本。
+
+部署前先问：
+
+- 是静态前端还是有 API？
+- 适合 Pages 还是 Worker？
+- 是否需要环境变量？
+- 是否会连接 Supabase？
+- 是否会调用 AI provider？
+
+给 Codex 的 prompt：
+
+```text
+请帮我准备 Cloudflare 部署方案。
+
+先不要部署。
+请告诉我：
+1. 当前项目适合 Cloudflare Pages 还是 Workers
+2. build 命令是什么
+3. output 目录是什么
+4. 需要哪些环境变量
+5. 哪些环境变量是 secret
+6. 本地如何预览
+7. 部署前检查清单
+```
+
+确认后再发：
+
+```text
+可以部署到 Cloudflare 测试环境。
+
+要求：
+- 不要覆盖生产项目
+- 不要使用 Richard 的任何配置
+- 部署完给我 URL
+- 访问 URL 后做一次基本功能检查
+```
+
+验收标准：
+
+- 公开 URL 能打开。
+- 页面没有白屏。
+- 基本交互可用。
+- 控制台没有明显 error。
+- 没有泄露 secret。
+
+## 常见问题和处理方式
+
+### 页面白屏
+
+给 Codex：
+
+```text
+页面白屏。请先不要重写代码。
+
+请检查：
+1. 浏览器 console error
+2. 构建是否成功
+3. 入口文件是否正确
+4. 静态资源路径是否正确
+5. 最近一次改动是什么
+
+请定位具体错误后再修。
+```
+
+### 样式很丑
+
+给 Codex：
+
+```text
+请改善 UI，但不要改业务逻辑。
+
+目标：
+- 更像工作台，不像 landing page
+- 信息密度高一点
+- 字体不要太大
+- 卡片不要套卡片
+- 移动端不要重叠
+- Source / View 编辑体验优先
+
+请只改样式文件，除非必须改 HTML/组件结构。
+```
+
+### Codex 改太多
+
+给 Codex：
+
+```text
+你这次改动太大。请暂停。
+
+请先回答：
+1. 哪些改动是完成当前任务必须的？
+2. 哪些是顺手重构？
+3. 能否只保留必须改动？
+4. 当前功能最小版本是什么？
+
+不要继续扩大范围。
+```
+
+### AI 不工作
+
+给 Codex：
+
+```text
+AI action 不工作。请按顺序检查：
+1. 按钮点击事件是否触发
+2. 当前 note 是否存在
+3. source/view 是否传入
+4. mock provider 是否返回内容
+5. 内容是否写入 View
+6. 是否保存到存储层
+
+请先用 mock provider 跑通，不要急着接真实模型。
+```
+
+### Supabase 权限错误
+
+给 Codex：
+
+```text
+Supabase 出现权限错误。
+
+请先不要关闭 RLS。
+请检查：
+1. 当前用户是否登录
+2. 表是否有 user_id
+3. SELECT policy 是否存在
+4. INSERT policy 是否存在
+5. UPDATE 是否同时需要 SELECT policy
+6. 前端是否误用了 service_role key
+
+请查最新 Supabase 官方文档后再修。
+```
+
+### 部署后本地可以、线上不行
+
+给 Codex：
+
+```text
+本地可用，线上不可用。请检查：
+1. 环境变量是否配置到 Cloudflare
+2. build output 是否正确
+3. 路由是否 fallback 到 index.html
+4. API 路径是否不同
+5. CORS 是否有问题
+6. 浏览器 console 和 network 里具体错误是什么
+
+请先定位，不要盲目重写。
+```
+
+### Git 不会用了
+
+给 Codex：
+
+```text
+请帮我检查 git 状态。
+
+要求：
+- 先显示当前分支
+- 显示 changed files
+- 总结每个文件为什么改了
+- 不要直接 push
+- 不要 reset
+- 如果要 commit，先给我 commit message 建议
+```
+
+## 让 Codex 少犯错的固定前缀
+
+每次开新任务，都可以在最前面加：
+
+```text
+请注意：
+- 不要复制 Richard 的源码
+- 不要爬取私人数据
+- 不要绕过登录
+- 不要把 API key 放进前端
+- 不要直接部署
+- 不要直接改数据库
+- 不要一次性重构
+- 每次只做一个小功能
+- 做完必须告诉我如何验证
+```
+
+## 让 Codex 做 code review
+
+每完成一个阶段，发：
+
+```text
+请 review 当前实现。
+
+重点看：
+1. 有没有数据丢失风险
+2. Source/View 是否被混淆
+3. AI 输出是否可能覆盖用户内容
+4. 搜索是否遗漏重要字段
+5. localStorage/Supabase 是否有迁移风险
+6. 是否有 secret 泄露风险
+7. 是否有移动端布局问题
+8. 是否有无关重构
+
+请按严重程度列出问题，并给出修复建议。
+```
+
+## 功能优先级
+
+如果不知道下一步做什么，按这个顺序：
+
+1. Notes Core
+2. Source / View
+3. Local persistence
+4. Folders
+5. Tags
+6. Search
+7. Mock AI summary
+8. Mock AI questions
+9. Home dashboard
+10. Mock upload queue
+11. Company workspace
+12. Daily Brief
+13. Agent Monitor
+14. Supabase schema
+15. Supabase auth
+16. Supabase notes CRUD
+17. Cloudflare deploy
+18. Real AI provider
+19. File upload
+20. Real background jobs
+
+不要跳到第 18 步，然后回来发现第 2 步还不好用。
+
+## 数据字段解释
+
+### note.source
+
+用途：保存原始材料。
+
+例子：
+
+```text
+会议原文、转录内容、PDF 摘录、网页摘录、手写原始想法。
+```
+
+不应该：
+
+- 被摘要覆盖。
+- 被问题清单覆盖。
+- 被自动清空。
+
+### note.view
+
+用途：保存整理后的材料。
+
+例子：
+
+```text
+摘要、行动项、问题清单、公司视图、周报素材、用户整理后的最终版本。
+```
+
+应该：
+
+- 可编辑。
+- 可追加 AI 输出。
+- 可被用户重写。
+
+### note.entity
+
+用途：把材料关联到公司、项目、人物或主题。
+
+例子：
+
+```text
+SampleCo
+AI Tools
+Personal CRM
+Project Atlas
+```
+
+第一版可以只是字符串。后续再拆成 entities 表。
+
+### note.status
+
+建议值：
+
+```text
+draft
+processing
+completed
+error
+archived
+```
+
+用处：
+
+- 上传队列。
+- Agent Monitor。
+- Daily Brief。
+- 筛选待处理材料。
+
+## 真实 AI 接入前的检查
+
+接真实模型前，先确认：
+
+- Mock AI 已经跑通。
+- 输出能写入 View。
+- View 不会被覆盖。
+- 错误能显示。
+- API key 不在前端。
+- 后端 route 有输入校验。
+- 请求体不会过大。
+- 用户知道这会消耗额度。
+
+给 Codex：
+
+```text
+请检查当前项目是否已经准备好接真实 AI。
+
+请逐项检查：
+1. mock provider 是否存在
+2. AI action contract 是否清楚
+3. 前端是否只传必要字段
+4. 后端 route 是否存在
+5. API key 是否只在服务端
+6. 错误处理是否清楚
+7. 输出是否追加到 View
+8. 是否有额度消耗提示
+
+不满足的地方先列出来，不要直接接真实模型。
+```
+
+## 真实文件上传前的检查
+
+文件上传很容易变复杂。先确认：
+
+- Mock upload 已经可用。
+- note 和 file 的关系清楚。
+- 文件大小限制明确。
+- 文件类型限制明确。
+- 上传失败有错误提示。
+- Storage 权限清楚。
+
+给 Codex：
+
+```text
+请设计文件上传方案，但先不要实现。
+
+请回答：
+1. 文件存在哪里？
+2. note 和 file 如何关联？
+3. 最大文件多大？
+4. 支持哪些 mime type？
+5. 上传失败怎么处理？
+6. 谁可以读这个文件？
+7. 是否需要 Supabase Storage 或 Cloudflare R2？
+8. 需要哪些环境变量？
+```
+
+## 每天收工 checklist
+
+每天开发结束前，发给 Codex：
+
+```text
+请帮我做今日收工检查：
+1. 今天完成了什么
+2. 哪些功能已经本地验证
+3. 哪些功能还只是 mock
+4. 当前 git status
+5. 是否需要 commit
+6. 是否有敏感信息风险
+7. 明天第一步应该做什么
+```
+
+如果要 commit：
+
+```text
+请准备一个小而清楚的 commit。
+
+要求：
+- 只包含今天相关改动
+- 不包含 .env
+- 不包含 node_modules
+- commit message 简洁
+- commit 前先显示 changed files
+```
+
+## 什么时候可以问 Richard
+
+先完成这个 checklist：
+
+```text
+我已经：
+1. 让 Codex 阅读了 WORKSTATION_BUILD_PLAYBOOK.md
+2. 让 Codex 阅读了当前 repo
+3. 让 Codex 解释了错误
+4. 让 Codex 尝试了最小修复
+5. 让 Codex 跑了本地验证
+6. 我能说清楚卡在哪里
+```
+
+然后再问 Richard，问题要这样问：
+
+```text
+我现在做到第 X 阶段。
+目标是 Y。
+Codex 已经尝试了 A/B/C。
+现在卡在 Z。
+我不确定这是产品方向问题还是实现问题。
+你建议我下一步怎么拆？
+```
+
+不要这样问：
+
+```text
+我这个不行，你看看。
+```
+
+## 最后提醒
+
+你不是在做 Richard Workstation 的复制品。你是在做自己的工作台。
+
+Richard 的公开页面只能回答“产品长什么样、工作流大概怎么组织”。你的 Codex 应该回答“在你的 repo 里，下一步怎么安全地做出来”。
